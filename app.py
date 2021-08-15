@@ -1,25 +1,31 @@
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 
-news_list = []
+base_url = 'https://lista.mercadolivre.com.br/'
+product = 'mi band 5'
+url = base_url + product.replace(' ', '-')
 
-response = requests.get('https://g1.globo.com/')
+response = requests.get(url)
 
-content = response.content
+website = BeautifulSoup(response.text, 'html.parser')
 
-website = BeautifulSoup(content, 'html.parser')
+products = website.findAll('div', attrs={'class': 'andes-card andes-card--flat andes-card--default ui-search-result ui-search-result--core andes-card--padding-default'})
 
-news = website.findAll('div', attrs={'class': 'feed-post-body'})
+for product in products:
+    title = product.find('h2', attrs={'class': 'ui-search-item__title'})
+    link = product.find('a', attrs={'class': 'ui-search-link'})
+    
+    price = product.find('span', attrs={'class': 'price-tag-fraction'})
+    cents = product.find('span', attrs={'class': 'price-tag-cents'})
+    currency = product.find('span', attrs={'class': 'price-tag-symbol'})
 
-for new in news:
-    title = new.find('a', attrs={'class': 'feed-post-link'})
-    subtitle = new.find('div', attrs={'class': 'feed-post-body-resumo'})
+    parsed_price = f'{currency.text} {price.text}'
 
-    if subtitle:
-        news_list.append([title.text, subtitle.text, title['href']])
+    if cents:
+        parsed_price += f'.{cents.text}'
     else:
-        news_list.append([title.text, '', title['href']])
+        parsed_price += '.00'
 
-news = pd.DataFrame(news_list, columns=['Title', 'Subtitle', 'Link'])
-news.to_csv('news.csv', index=False)
+    print(title.text)
+    print(link['href'])
+    print(parsed_price)
